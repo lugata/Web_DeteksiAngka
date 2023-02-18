@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Aplikasi Pengenalan Angka</title>
+    <link rel="stylesheet" href="static/style.css" />
+  </head>
+  <body>
+    <h1>Aplikasi Pengenalan Angka</h1>
+
+    <!-- Tampilkan kamera real-time -->
+    <video id="video" width="320" height="240" autoplay></video>
+
+    <!-- Tampilkan hasil pengenalan angka -->
+    <div>Angka yang terdeteksi: {{ angka }}</div>
+
+    <script>
+      // Muat kamera real-time
+      const video = document.getElementById("video");
+      navigator.mediaDevices.getUserMedia({ video: true }).then((stream) => {
+        video.srcObject = stream;
+      });
+
+      // Ambil frame dari kamera setiap beberapa detik sekali,
+      // olah citra menggunakan OpenCV, dan kirim citra ke server
+      setInterval(function () {
+        // Tangkap frame dari kamera
+        const canvas = document.createElement("canvas");
+        const context = canvas.getContext("2d");
+        context.drawImage(video, 0, 0, 28, 28);
+
+        // Ubah citra ke dalam bentuk tensor
+        const image = tf.browser.fromPixels(canvas, 1);
+        image.resize([28, 28, 1]);
+
+        // Kirim citra ke server
+        fetch("/predict", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            image: image.dataSync(),
+          }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            // Tampilkan hasil pengenalan angka di halaman web
+            document.getElementById("angka").innerHTML = data.angka;
+          });
+      }, 1000);
+    </script>
+  </body>
+</html>
